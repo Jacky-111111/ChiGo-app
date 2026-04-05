@@ -5,6 +5,7 @@ import type { DeviceLocation, MenuImage, OCRResult } from "@/types/menu";
 export type ManualSearchInput = {
   restaurantName: string;
   dishName: string;
+  dishNames?: string[];
 };
 
 type SessionState = {

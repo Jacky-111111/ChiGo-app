@@ -1,17 +1,19 @@
 import { Linking, Pressable, StyleSheet, Text, View, Image } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 import type { DishImageResult } from "@/types/dish";
 import { colors, spacing } from "@/constants/theme";
 
 type Props = {
   result: DishImageResult;
   index: number;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
-export function ImageSourceCard({ result, index }: Props) {
+export function ImageSourceCard({ result, index, containerStyle }: Props) {
   const sourceUrl = result.sourceUrl;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       <Image
         accessibilityLabel={`Possible dish image result ${index + 1}`}
         source={{ uri: result.imageUrl }}

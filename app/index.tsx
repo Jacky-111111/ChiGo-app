@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { copy } from "@/constants/copy";
 import { colors, spacing } from "@/constants/theme";
@@ -7,6 +7,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
   resetSessionState,
+  setDishes,
   setManualSearchInput,
   setSelectedDish,
 } from "@/store/mvpSession";
@@ -14,39 +15,70 @@ import type { DishCandidate } from "@/types/dish";
 
 export default function Index() {
   const [restaurantName, setRestaurantName] = useState("");
-  const [dishName, setDishName] = useState("");
+  const [dishInput, setDishInput] = useState("");
+  const [dishNames, setDishNames] = useState<string[]>([]);
 
   const goToUpload = () => {
     resetSessionState();
     router.push("/upload");
   };
 
-  const canSearch = useMemo(() => dishName.trim().length > 0, [dishName]);
+  const canSearch = useMemo(
+    () => dishNames.length > 0 || dishInput.trim().length > 0,
+    [dishInput, dishNames.length]
+  );
+
+  const addDish = () => {
+    const clean = dishInput.trim();
+    if (!clean) return;
+    setDishNames((prev) => {
+      if (prev.some((item) => item.toLowerCase() === clean.toLowerCase())) {
+        return prev;
+      }
+      return [...prev, clean];
+    });
+    setDishInput("");
+  };
+
+  const removeDish = (name: string) => {
+    setDishNames((prev) => prev.filter((item) => item !== name));
+  };
 
   const handleSearchThisDish = () => {
     if (!canSearch) return;
 
-    const cleanDishName = dishName.trim();
-    const cleanRestaurantName = restaurantName.trim();
+    const pendingInput = dishInput.trim();
+    const finalDishNames = [...dishNames];
+    if (pendingInput.length > 0) {
+      const duplicated = finalDishNames.some(
+        (item) => item.toLowerCase() === pendingInput.toLowerCase()
+      );
+      if (!duplicated) finalDishNames.push(pendingInput);
+    }
+    if (finalDishNames.length === 0) return;
 
-    const manualDish: DishCandidate = {
-      id: `manual-${Date.now()}`,
-      name: cleanDishName,
-      originalText: cleanDishName,
+    const cleanRestaurantName = restaurantName.trim();
+    const manualDishes: DishCandidate[] = finalDishNames.map((dishName, index) => ({
+      id: `manual-${Date.now()}-${index}`,
+      name: dishName,
+      originalText: dishName,
       parseConfidence: 0.99,
       restaurantName: cleanRestaurantName || undefined,
-    };
+    }));
+    const firstDish = manualDishes[0];
 
     resetSessionState();
+    setDishes(manualDishes);
     setManualSearchInput({
       restaurantName: cleanRestaurantName,
-      dishName: cleanDishName,
+      dishName: firstDish.name,
+      dishNames: finalDishNames,
     });
-    setSelectedDish(manualDish);
+    setSelectedDish(firstDish);
 
     router.push({
       pathname: "/dish-result",
-      params: { dishId: manualDish.id },
+      params: { dishId: firstDish.id, batch: "1" },
     });
   };
 
@@ -71,18 +103,34 @@ export default function Index() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Dish Name</Text>
+          <Text style={styles.label}>Dish Name (add multiple)</Text>
           <TextInput
             placeholder="e.g. Mapo Tofu"
-            value={dishName}
-            onChangeText={setDishName}
+            value={dishInput}
+            onChangeText={setDishInput}
             style={styles.input}
             autoCapitalize="words"
+            onSubmitEditing={addDish}
           />
+          <PrimaryButton label="Add Dish" onPress={addDish} variant="secondary" />
+          {dishNames.length > 0 ? (
+            <View style={styles.tagsWrap}>
+              {dishNames.map((dish) => (
+                <Pressable
+                  key={dish}
+                  onPress={() => removeDish(dish)}
+                  style={styles.tag}
+                  accessibilityLabel={`Remove ${dish}`}
+                >
+                  <Text style={styles.tagText}>{dish} x</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         <PrimaryButton
-          label="Search This Dish"
+          label="Search Added Dishes"
           onPress={handleSearchThisDish}
           disabled={!canSearch}
         />
@@ -140,6 +188,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: colors.textPrimary,
     fontSize: 15,
+  },
+  tagsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  tag: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fff8f5",
+  },
+  tagText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
   },
   sectionNote: {
     color: colors.textSecondary,
