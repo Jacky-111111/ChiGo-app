@@ -15,3 +15,13 @@ export type OCRResult = {
   languageHint?: string;
   confidence?: number;
 };
+
+export type DeviceLocation = {
+  latitude: number;
+  longitude: number;
+  city?: string;
+  region?: string;
+  country?: string;
+  formatted?: string;
+  fetchedAt: string;
+};

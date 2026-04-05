@@ -8,6 +8,8 @@ type Props = {
 };
 
 export function ImageSourceCard({ result, index }: Props) {
+  const sourceUrl = result.sourceUrl;
+
   return (
     <View style={styles.container}>
       <Image
@@ -21,8 +23,8 @@ export function ImageSourceCard({ result, index }: Props) {
           Confidence: {Math.round(result.relevanceScore * 100)}%
         </Text>
       ) : null}
-      {result.sourceUrl ? (
-        <Pressable onPress={() => Linking.openURL(result.sourceUrl)}>
+      {sourceUrl ? (
+        <Pressable onPress={() => Linking.openURL(sourceUrl)}>
           <Text style={styles.link}>Open source</Text>
         </Pressable>
       ) : (

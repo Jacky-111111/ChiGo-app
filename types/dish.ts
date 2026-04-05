@@ -4,12 +4,16 @@ export type DishCandidate = {
   description?: string;
   originalText: string;
   parseConfidence?: number;
+  restaurantName?: string;
+  locationHint?: string;
 };
 
 export type DishSearchQuery = {
   dishName: string;
   description?: string;
   cuisineHint?: string;
+  restaurantName?: string;
+  locationHint?: string;
   searchText: string;
 };
 

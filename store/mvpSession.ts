@@ -1,6 +1,11 @@
 import type { DishSearchResponse } from "@/types/api";
 import type { DishCandidate } from "@/types/dish";
-import type { MenuImage, OCRResult } from "@/types/menu";
+import type { DeviceLocation, MenuImage, OCRResult } from "@/types/menu";
+
+export type ManualSearchInput = {
+  restaurantName: string;
+  dishName: string;
+};
 
 type SessionState = {
   selectedImage?: MenuImage;
@@ -8,6 +13,8 @@ type SessionState = {
   dishes: DishCandidate[];
   selectedDish?: DishCandidate;
   searchResponseByDishId: Record<string, DishSearchResponse>;
+  manualSearchInput?: ManualSearchInput;
+  currentLocation?: DeviceLocation;
 };
 
 const sessionState: SessionState = {
@@ -25,6 +32,8 @@ export function resetSessionState(): void {
   sessionState.dishes = [];
   sessionState.selectedDish = undefined;
   sessionState.searchResponseByDishId = {};
+  sessionState.manualSearchInput = undefined;
+  sessionState.currentLocation = undefined;
 }
 
 export function setSelectedImage(image: MenuImage): void {
@@ -48,4 +57,12 @@ export function setDishSearchResponse(
   response: DishSearchResponse
 ): void {
   sessionState.searchResponseByDishId[dishId] = response;
+}
+
+export function setManualSearchInput(input: ManualSearchInput): void {
+  sessionState.manualSearchInput = input;
+}
+
+export function setCurrentLocation(location: DeviceLocation): void {
+  sessionState.currentLocation = location;
 }
