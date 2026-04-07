@@ -4,6 +4,7 @@ import type { DeviceLocation, MenuImage, OCRResult } from "@/types/menu";
 
 export type ManualSearchInput = {
   restaurantName: string;
+  restaurantConfirmed?: boolean;
   dishName: string;
   dishNames?: string[];
 };

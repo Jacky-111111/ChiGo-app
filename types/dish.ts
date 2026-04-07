@@ -5,6 +5,7 @@ export type DishCandidate = {
   originalText: string;
   parseConfidence?: number;
   restaurantName?: string;
+  restaurantConfirmed?: boolean;
   locationHint?: string;
 };
 
@@ -13,6 +14,7 @@ export type DishSearchQuery = {
   description?: string;
   cuisineHint?: string;
   restaurantName?: string;
+  restaurantConfirmed?: boolean;
   locationHint?: string;
   searchText: string;
 };

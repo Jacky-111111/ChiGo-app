@@ -15,6 +15,7 @@ import type { DishCandidate } from "@/types/dish";
 
 export default function Index() {
   const [restaurantName, setRestaurantName] = useState("");
+  const [restaurantConfirmed, setRestaurantConfirmed] = useState(false);
   const [dishInput, setDishInput] = useState("");
   const [dishNames, setDishNames] = useState<string[]>([]);
 
@@ -64,6 +65,7 @@ export default function Index() {
       originalText: dishName,
       parseConfidence: 0.99,
       restaurantName: cleanRestaurantName || undefined,
+      restaurantConfirmed: cleanRestaurantName ? restaurantConfirmed : false,
     }));
     const firstDish = manualDishes[0];
 
@@ -71,6 +73,7 @@ export default function Index() {
     setDishes(manualDishes);
     setManualSearchInput({
       restaurantName: cleanRestaurantName,
+      restaurantConfirmed: cleanRestaurantName ? restaurantConfirmed : false,
       dishName: firstDish.name,
       dishNames: finalDishNames,
     });
@@ -96,10 +99,22 @@ export default function Index() {
           <TextInput
             placeholder="e.g. Sichuan Garden"
             value={restaurantName}
-            onChangeText={setRestaurantName}
+            onChangeText={(value) => {
+              setRestaurantName(value);
+              setRestaurantConfirmed(false);
+            }}
             style={styles.input}
             autoCapitalize="words"
           />
+          <PrimaryButton
+            label={restaurantConfirmed ? "Restaurant Confirmed" : "Confirm Restaurant Name"}
+            onPress={() => setRestaurantConfirmed((prev) => !prev)}
+            variant="secondary"
+            disabled={restaurantName.trim().length === 0}
+          />
+          <Text style={styles.confirmHint}>
+            Confirmed restaurant names are searched first for venue-specific dish photos.
+          </Text>
         </View>
 
         <View style={styles.inputGroup}>
@@ -173,6 +188,11 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: spacing.xs,
+  },
+  confirmHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
   label: {
     color: colors.textPrimary,

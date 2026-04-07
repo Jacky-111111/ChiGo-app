@@ -48,15 +48,15 @@ type WikimediaQuery = {
   };
 };
 
+type FetchedImage = {
+  imageUrl: string;
+  title?: string;
+  sourceUrl?: string;
+};
+
 async function fetchWikimediaDishImages(
   searchText: string
-): Promise<
-  Array<{
-    imageUrl: string;
-    title?: string;
-    sourceUrl?: string;
-  }>
-> {
+): Promise<FetchedImage[]> {
   const params = new URLSearchParams({
     action: "query",
     format: "json",
@@ -91,6 +91,27 @@ async function fetchWikimediaDishImages(
     .filter((item) => item.imageUrl.length > 0);
 }
 
+function normalizeWords(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length >= 3);
+}
+
+function filterRestaurantSpecificResults(
+  results: FetchedImage[],
+  restaurantName: string
+): FetchedImage[] {
+  const keywords = normalizeWords(restaurantName);
+  if (keywords.length === 0) return results.slice(0, 3);
+
+  return results.filter((item) => {
+    const haystack = `${item.title ?? ""} ${item.sourceUrl ?? ""}`.toLowerCase();
+    return keywords.some((keyword) => haystack.includes(keyword));
+  });
+}
+
 export async function searchDishImages(
   candidate: DishCandidate
 ): Promise<DishSearchResponse> {
@@ -106,18 +127,46 @@ export async function searchDishImages(
       title: candidate.name,
       relevanceScore: Number((0.92 - index * 0.08).toFixed(2)),
     })) ?? [];
+  let strategy: DishSearchResponse["searchStrategy"] = "generic_only";
 
   if (rawResults.length === 0) {
     try {
-      const wikiResults = await fetchWikimediaDishImages(query.searchText);
-      rawResults = wikiResults.map((item, index) => ({
+      const hasConfirmedRestaurant = Boolean(
+        query.restaurantName && query.restaurantConfirmed
+      );
+      const restaurantSearchText = hasConfirmedRestaurant
+        ? `${query.dishName} ${query.restaurantName} restaurant menu food`
+        : "";
+
+      let restaurantResults: FetchedImage[] = [];
+      if (hasConfirmedRestaurant && restaurantSearchText) {
+        const fetched = await fetchWikimediaDishImages(restaurantSearchText);
+        restaurantResults = filterRestaurantSpecificResults(
+          fetched,
+          query.restaurantName!
+        );
+      }
+
+      const needsGeneric = restaurantResults.length < 2;
+      const genericResults = needsGeneric
+        ? await fetchWikimediaDishImages(query.searchText)
+        : [];
+
+      rawResults = [...restaurantResults, ...genericResults].map((item, index) => ({
         id: `${candidate.id}-wiki-${index}`,
         imageUrl: item.imageUrl,
-        sourceName: "Wikimedia Commons",
+        sourceName:
+          index < restaurantResults.length
+            ? "Restaurant-specific result (Wikimedia)"
+            : "General dish result (Wikimedia)",
         sourceUrl: item.sourceUrl,
         title: item.title ?? candidate.name,
-        relevanceScore: Number((0.88 - index * 0.06).toFixed(2)),
+        relevanceScore: Number((0.9 - index * 0.05).toFixed(2)),
       }));
+
+      if (restaurantResults.length > 0) {
+        strategy = "restaurant_first";
+      }
     } catch {
       rawResults = [];
     }
@@ -137,6 +186,9 @@ export async function searchDishImages(
     query,
     results: dedupeImages(rawResults),
     explanation:
-      "Online image search based on dish name and optional restaurant context.",
+      strategy === "restaurant_first"
+        ? "Restaurant-specific search ran first; if needed, broader dish results were added."
+        : "Broad dish search based on dish name and optional context.",
+    searchStrategy: strategy,
   };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import type { MenuImage } from "@/types/menu";
 
@@ -21,18 +21,19 @@ function toMenuImage(
 export function useImageSelection() {
   const [selectedImage, setSelectedImage] = useState<MenuImage | undefined>();
   const [error, setError] = useState<SelectionError>(null);
-  const [cameraPermission, requestCameraPermission] =
-    ImagePicker.useCameraPermissions();
-  const [libraryPermission, requestLibraryPermission] =
-    ImagePicker.useMediaLibraryPermissions();
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   const chooseFromLibrary = useCallback(async () => {
     setError(null);
-    const permission = libraryPermission?.granted
-      ? libraryPermission
-      : await requestLibraryPermission();
+    setPermissionDenied(false);
+    const currentPermission =
+      await ImagePicker.getMediaLibraryPermissionsAsync();
+    const permission = currentPermission.granted
+      ? currentPermission
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
+      setPermissionDenied(permission.canAskAgain === false);
       setError("Photo library permission is required to choose a menu photo.");
       return;
     }
@@ -45,15 +46,18 @@ export function useImageSelection() {
     if (!result.canceled && result.assets.length > 0) {
       setSelectedImage(toMenuImage(result.assets[0], "library"));
     }
-  }, [libraryPermission, requestLibraryPermission]);
+  }, []);
 
   const takePhoto = useCallback(async () => {
     setError(null);
-    const permission = cameraPermission?.granted
-      ? cameraPermission
-      : await requestCameraPermission();
+    setPermissionDenied(false);
+    const currentPermission = await ImagePicker.getCameraPermissionsAsync();
+    const permission = currentPermission.granted
+      ? currentPermission
+      : await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permission.granted) {
+      setPermissionDenied(permission.canAskAgain === false);
       setError("Camera permission is required to take a menu photo.");
       return;
     }
@@ -67,14 +71,7 @@ export function useImageSelection() {
     if (!result.canceled && result.assets.length > 0) {
       setSelectedImage(toMenuImage(result.assets[0], "camera"));
     }
-  }, [cameraPermission, requestCameraPermission]);
-
-  const permissionDenied = useMemo(
-    () =>
-      cameraPermission?.canAskAgain === false ||
-      libraryPermission?.canAskAgain === false,
-    [cameraPermission?.canAskAgain, libraryPermission?.canAskAgain]
-  );
+  }, []);
 
   return {
     selectedImage,
