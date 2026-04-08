@@ -3,6 +3,8 @@ export type ImageSourceType = "camera" | "library";
 export type MenuImage = {
   id: string;
   uri: string;
+  ocrUri?: string;
+  originalUri?: string;
   width?: number;
   height?: number;
   source: ImageSourceType;

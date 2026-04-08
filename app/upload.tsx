@@ -20,11 +20,16 @@ export default function UploadScreen() {
   const handleContinue = async () => {
     if (!selectedImage) return;
 
-    setSelectedImage(selectedImage);
-    const ocrResult = await runOcr(selectedImage.uri);
-    setOcrResult(ocrResult);
-    setDishes(parseDishCandidates(ocrResult));
-    router.push("/parse-results");
+    try {
+      setSelectedImage(selectedImage);
+      const ocrInputUri = selectedImage.ocrUri ?? selectedImage.uri;
+      const ocrResult = await runOcr(ocrInputUri);
+      setOcrResult(ocrResult);
+      setDishes(parseDishCandidates(ocrResult));
+      router.push("/parse-results");
+    } catch {
+      // Errors are surfaced via useOcr state; keep user on this screen.
+    }
   };
 
   return (
